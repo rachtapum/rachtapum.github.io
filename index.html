@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>รัฐภูมิ พยัคฆเดช — Computer Graphics Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0c10;
+    --bg-panel:#12151b;
+    --bg-panel-2:#0e1116;
+    --border:#262b33;
+    --amber-hi:#FDE047;
+    --amber:#D97706;
+    --amber-deep:#B45309;
+    --ink:#111827;
+    --text:#E7E9EE;
+    --muted:#8B93A3;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    line-height:1.6;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(217,119,6,0.07) 1px, transparent 0);
+    background-size:24px 24px;
+  }
+  .pixel{font-family:'Press Start 2P', monospace;}
+  a{color:var(--amber-hi); text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  a:focus-visible, button:focus-visible{outline:2px solid var(--amber-hi); outline-offset:3px;}
+
+  /* NAV */
+  nav{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 32px;
+    background:rgba(10,12,16,0.88);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+  }
+  .nav-mark{
+    font-family:'Press Start 2P', monospace;
+    font-size:11px;
+    color:var(--amber-hi);
+    letter-spacing:1px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .nav-mark .dot{width:8px;height:8px;background:var(--amber); display:inline-block;}
+  .nav-links{display:flex; gap:28px; font-size:13px;}
+  .nav-links a{color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-size:11px;}
+  .nav-links a:hover{color:var(--amber-hi);}
+
+  /* HERO */
+  .hero{
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:40px;
+    padding:88px 32px 72px;
+    max-width:1100px; margin:0 auto;
+    border-bottom:1px dashed var(--border);
+  }
+  .hero-text{flex:1; min-width:280px;}
+  .eyebrow{
+    font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--amber);
+    margin-bottom:18px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:''; width:24px; height:1px; background:var(--amber-deep);}
+  h1.name{
+    font-family:'Press Start 2P', monospace;
+    font-size:clamp(22px, 4vw, 38px);
+    line-height:1.6;
+    margin:0 0 18px;
+    color:var(--text);
+  }
+  h1.name span{color:var(--amber-hi);}
+  .role{font-size:16px; color:var(--muted); margin:0 0 26px;}
+  .contact-row{display:flex; flex-wrap:wrap; gap:14px 26px; font-size:13px;}
+  .contact-row a{color:var(--text); border-bottom:1px solid var(--amber-deep); padding-bottom:2px;}
+  .contact-row a:hover{color:var(--amber-hi); border-color:var(--amber-hi); text-decoration:none;}
+  .contact-row .tag{color:var(--muted);}
+
+  /* Live pixel emblem */
+  .emblem-wrap{
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+  }
+  #emblem{
+    image-rendering:pixelated;
+    border:1px solid var(--border);
+    background:#fff;
+  }
+  .emblem-caption{font-size:10px; color:var(--muted); text-align:center; letter-spacing:0.5px;}
+
+  /* SECTIONS */
+  section{max-width:1100px; margin:0 auto; padding:64px 32px;}
+  h2.section-title{
+    font-family:'Press Start 2P', monospace;
+    font-size:15px;
+    color:var(--amber-hi);
+    margin:0 0 36px;
+    display:flex; align-items:center; gap:14px;
+  }
+  h2.section-title::after{content:''; flex:1; height:1px; background:var(--border);}
+
+  /* ABOUT */
+  .about-grid{display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+  @media (max-width:720px){.about-grid{grid-template-columns:1fr;}}
+  .card{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    padding:26px 24px;
+    border-radius:var(--radius);
+  }
+  .card h3{
+    font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--amber);
+    margin:0 0 14px;
+  }
+  .card p{margin:0; color:var(--text); font-size:14px;}
+  .card .school{font-weight:700; font-size:16px; color:var(--amber-hi); margin-bottom:6px;}
+  .card .muted{color:var(--muted); font-size:13px;}
+  .skills{display:flex; flex-wrap:wrap; gap:10px;}
+  .skill-tag{
+    font-size:12px;
+    padding:8px 12px;
+    background:var(--bg-panel-2);
+    border:1px solid var(--amber-deep);
+    color:var(--amber-hi);
+    border-radius:var(--radius);
+  }
+
+  /* PROJECTS */
+  .project{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    margin-bottom:32px;
+    overflow:hidden;
+  }
+  .project-header{
+    padding:22px 24px 0;
+  }
+  .project-header .index{color:var(--amber-deep); font-size:11px; letter-spacing:2px;}
+  .project-header h3{margin:8px 0 10px; font-size:18px; color:var(--amber-hi);}
+  .project-header p{color:var(--muted); font-size:13.5px; margin:0 0 16px; max-width:680px;}
+  .controls-row{
+    display:flex; flex-wrap:wrap; gap:10px 18px;
+    font-size:12px; color:var(--text);
+    padding:0 24px 20px;
+  }
+  .controls-row .ctl{display:flex; align-items:center; gap:6px;}
+  .key{
+    display:inline-block; min-width:16px; text-align:center;
+    padding:2px 6px;
+    background:var(--ink);
+    color:var(--amber-hi);
+    border:1px solid var(--amber-deep);
+    font-size:11px;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .demo-frame{
+    border-top:1px solid var(--border);
+    background:repeating-conic-gradient(#1a1d24 0% 25%, #14171c 0% 50%) 50% / 20px 20px;
+    display:flex; justify-content:center;
+    padding:24px;
+  }
+  .demo-frame iframe{
+    width:100%; max-width:520px; height:560px;
+    border:1px solid var(--border);
+    background:#fff;
+  }
+  .project-footer{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 24px; border-top:1px solid var(--border);
+    font-size:12px;
+  }
+  .project-footer a{color:var(--muted);}
+  .project-footer a:hover{color:var(--amber-hi);}
+
+  footer{
+    max-width:1100px; margin:0 auto; padding:40px 32px 60px;
+    display:flex; flex-wrap:wrap; justify-content:space-between; gap:14px;
+    color:var(--muted); font-size:12px; border-top:1px dashed var(--border);
+  }
+  footer a{color:var(--muted);}
+  footer a:hover{color:var(--amber-hi);}
+
+  @media (prefers-reduced-motion: reduce){
+    * { animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-mark"><span class="dot"></span>RACHTAPUM.PORTFOLIO</div>
+  <div class="nav-links">
+    <a href="#profile">Profile</a>
+    <a href="#details">Details</a>
+    <a href="#project">Project</a>
+  </div>
+</nav>
+
+<header class="hero" id="profile">
+  <div class="hero-text">
+    <div class="eyebrow">Interactive Computer Graphics</div>
+    <h1 class="name">รัฐภูมิ<br><span>พยัคฆเดช</span></h1>
+    <p class="role">Computer Science Student &amp; Graphics Programmer</p>
+    <div class="contact-row">
+      <span class="tag">Email:</span>
+      <a href="mailto:mavinta59@gmail.com">mavinta59@gmail.com</a>
+      <span class="tag">GitHub:</span>
+      <a href="https://github.com/rachtapum" target="_blank" rel="noopener">rachtapum</a>
+    </div>
+  </div>
+  <div class="emblem-wrap">
+    <canvas id="emblem" width="80" height="80" style="width:160px;height:160px;"></canvas>
+    <div class="emblem-caption">rendered live · software rasterizer</div>
+  </div>
+</header>
+
+<section id="details">
+  <h2 class="section-title">About Me</h2>
+  <div class="about-grid">
+    <div class="card">
+      <h3>Education</h3>
+      <div class="school">Kasetsart University</div>
+      <p class="muted">Kamphaeng Saen Campus</p>
+      <p style="margin-top:10px;">Faculty of Liberal Arts and Science<br>Major: Computer Science</p>
+    </div>
+    <div class="card">
+      <h3>Skills</h3>
+      <div class="skills">
+        <span class="skill-tag">HTML / CSS</span>
+        <span class="skill-tag">JavaScript</span>
+        <span class="skill-tag">C++</span>
+        <span class="skill-tag">Computer Graphics</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="project">
+  <h2 class="section-title">Computer Graphics Projects</h2>
+
+  <div class="project">
+    <div class="project-header">
+      <div class="index">01 / SPRITE RENDERING</div>
+      <h3>24-bit Sprite Rendering — Translate / Rotate / Scale</h3>
+      <p>ผลงานที่แสดงการทำงานของ Software Rasterizer สำหรับวาดสไปรต์แบบ 24-bit บนพิกเซล พร้อมระบบ Transformation (หมุน / ขยาย) แบบเรียลไทม์ ตามตำแหน่งเมาส์</p>
+    </div>
+    <div class="controls-row">
+      <div class="ctl"><span class="key">◄</span><span class="key">►</span> Rotate</div>
+      <div class="ctl"><span class="key">▲</span><span class="key">▼</span> Scale</div>
+      <div class="ctl">Move cursor to reposition sprite</div>
+    </div>
+    <div class="demo-frame">
+      <iframe src="transformation24bit.html" title="24-bit Sprite Rendering demo"></iframe>
+    </div>
+    <div class="project-footer">
+      <span>transformation24bit.html</span>
+      <a href="https://github.com/rachtapum/rachtapum.github.io/blob/main/transformation24bit.html" target="_blank" rel="noopener">View Source Code →</a>
+    </div>
+  </div>
+
+  <div class="project">
+    <div class="project-header">
+      <div class="index">02 / RASTER GRAPHICS</div>
+      <h3>Pixel Paint — Raster Drawing Tool</h3>
+      <p>โปรแกรมวาดภาพแบบ Raster ที่เขียนขึ้นเองทั้งเส้น สี่เหลี่ยม วงรี และพู่กัน โดยไม่พึ่งฟังก์ชันวาดสำเร็จรูปของ Canvas API ใช้อัลกอริทึมคำนวณพิกเซลด้วยตนเอง</p>
+    </div>
+    <div class="controls-row">
+      <div class="ctl"><span class="key">1</span> Pencil</div>
+      <div class="ctl"><span class="key">2</span> Line</div>
+      <div class="ctl"><span class="key">3</span> Rectangle</div>
+      <div class="ctl"><span class="key">4</span> Ellipse</div>
+      <div class="ctl"><span class="key">5</span> Eraser</div>
+      <div class="ctl"><span class="key">▲</span><span class="key">▼</span> Brush size</div>
+    </div>
+    <div class="demo-frame">
+      <iframe src="paint.html" title="Pixel Paint demo"></iframe>
+    </div>
+    <div class="project-footer">
+      <span>paint.html</span>
+      <a href="https://github.com/rachtapum/rachtapum.github.io/blob/main/paint.html" target="_blank" rel="noopener">View Source Code →</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>© 2026 รัฐภูมิ พยัคฆเดช — built with plain HTML / CSS / JS</span>
+  <a href="https://github.com/rachtapum" target="_blank" rel="noopener">github.com/rachtapum</a>
+</footer>
+
+<script>
+// Live pixel emblem: reuses the same 24-bit sprite rasterizer idea from
+// transformation24bit.html, rotating gently as a signature of the work above.
+(function(){
+  const canvas = document.getElementById('emblem');
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.createImageData(canvas.width, canvas.height);
+  const pixels = imageData.data;
+
+  function putPixel(x, y, r, g, b, a=255){
+    if(x<0||y<0||x>=canvas.width||y>=canvas.height) return;
+    const idx = (y*canvas.width+x)*4;
+    pixels[idx]=r; pixels[idx+1]=g; pixels[idx+2]=b; pixels[idx+3]=a;
+  }
+  function fillWhite(){
+    for(let i=0;i<pixels.length;i+=4){pixels[i]=255;pixels[i+1]=255;pixels[i+2]=255;pixels[i+3]=255;}
+  }
+
+  const sprite = [
+    [null,null,0xB45309,0xD97706,0xD97706,0xB45309,null,null],
+    [null,0xD97706,0xFDE047,0xFEF08A,0xFEF08A,0xFDE047,0xD97706,null],
+    [0xB45309,0xFDE047,0x111827,0xFDE047,0xFDE047,0x111827,0xFDE047,0xB45309],
+    [0xD97706,0xFEF08A,0x111827,0xFEF08A,0xFEF08A,0x111827,0xFEF08A,0xD97706],
+    [0xD97706,0xFDE047,0xFDE047,0xFDE047,0xFDE047,0xFDE047,0xFDE047,0xD97706],
+    [0xB45309,0xFDE047,0x111827,0xFDE047,0xFDE047,0x111827,0xFDE047,0xB45309],
+    [null,0xD97706,0xFDE047,0x111827,0x111827,0xFDE047,0xD97706,null],
+    [null,null,0xB45309,0xD97706,0xD97706,0xB45309,null,null]
+  ];
+
+  function drawSpriteRotate(deg, scale){
+    const rad = deg*Math.PI/180;
+    const cosR = Math.cos(rad), sinR = Math.sin(rad);
+    const h = sprite.length, w = sprite[0].length;
+    const cx = canvas.width/2, cy = canvas.height/2;
+    const block = Math.max(1, Math.round(scale));
+    for(let j=0;j<h;j++){
+      for(let i=0;i<w;i++){
+        const color = sprite[j][i];
+        if(color===null) continue;
+        const r=(color>>16)&255, g=(color>>8)&255, b=color&255;
+        const px=i-w/2, py=j-h/2;
+        const rx=px*cosR-py*sinR, ry=px*sinR+py*cosR;
+        const fx=Math.round(rx*scale), fy=Math.round(ry*scale);
+        const half=Math.floor(block/2);
+        for(let dy=0;dy<block;dy++){
+          for(let dx=0;dx<block;dx++){
+            putPixel(cx+fx+dx-half, cy+fy+dy-half, r,g,b);
+          }
+        }
+      }
+    }
+  }
+
+  let angle = 0;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function frame(){
+    fillWhite();
+    drawSpriteRotate(angle, 6);
+    ctx.putImageData(imageData,0,0);
+    if(!reduceMotion){ angle += 0.6; requestAnimationFrame(frame); }
+  }
+  frame();
+})();
+</script>
+
+</body>
+</html>

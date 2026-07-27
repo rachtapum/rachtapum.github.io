@@ -1,0 +1,337 @@
+<html>
+<head>
+<title>Raster Graphics</title>
+<style>
+  body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px; }
+  #toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .tool-indicator {
+    padding: 8px 14px; border: 2px solid #888; border-radius: 6px; background: #f2f2f2;
+    font-size: 14px;
+  }
+  .tool-indicator.active { background: #4a90e2; color: white; border-color: #2a6cbb; }
+  .key { display: inline-block; min-width: 14px; padding: 1px 5px; margin-right: 4px; border-radius: 4px; background: rgba(0,0,0,0.15); font-weight: bold; }
+  .tool-indicator.active .key { background: rgba(255,255,255,0.3); }
+  #canvas { image-rendering: pixelated; cursor: crosshair; }
+  label { font-size: 14px; display: flex; align-items: center; gap: 4px; }
+  #hint { font-size: 13px; color: #666; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+
+  <label>สี: <input type="color" id="colorPicker" value="#000000"></label>
+  <label>ความหนา: <input type="range" id="thickness" min="1" max="30" value="2">
+    <span id="thicknessValue">2</span>px
+  </label>
+</div>
+
+<canvas id="canvas" width="200" height="200" tabindex="0"
+style="width:500px; height:500px; border:1px solid #000;">
+</canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const imageData = ctx.createImageData(canvas.width, canvas.height);
+const pixels = imageData.data; // Array of color [R,G,B,A, R,G,B,A, ...]
+
+// Fill canvas white initially
+for (let i = 0; i < pixels.length; i += 4) {
+  pixels[i] = 255; pixels[i+1] = 255; pixels[i+2] = 255; pixels[i+3] = 255;
+}
+
+// A separate buffer holding the "committed" drawing (without any live preview)
+let baseline = pixels.slice();
+
+function putPixel(x, y, r, g, b, a = 255) {
+  if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return;
+  const idx = (y * canvas.width + x) * 4;
+  pixels[idx] = r;
+  pixels[idx + 1] = g;
+  pixels[idx + 2] = b;
+  pixels[idx + 3] = a;
+}
+
+// Draws a filled square/round brush centered at (x,y) with given thickness (diameter)
+function putThickPixel(x, y, size, r, g, b, a = 255) {
+  const radius = size / 2;
+  const rSq = radius * radius;
+  const start = Math.floor(-radius);
+  const end = Math.ceil(radius);
+  for (let dy = start; dy <= end; dy++) {
+    for (let dx = start; dx <= end; dx++) {
+      if (dx * dx + dy * dy <= rSq || size <= 2) {
+        putPixel(x + dx, y + dy, r, g, b, a);
+      }
+    }
+  }
+}
+
+function drawLine(x1, y1, x2, y2, r, g, b, a = 255, thickness = 1) {
+  const dx = Math.abs(x2 - x1);
+  const dy = Math.abs(y2 - y1);
+
+  if (dx === 0 && dy === 0) {
+    putThickPixel(x1, y1, thickness, r, g, b, a);
+    return;
+  }
+
+  if (dx > dy) {
+    const m = (y2 - y1) / (x2 - x1);
+    const c = y1 - m * x1;
+    const xStart = Math.min(x1, x2);
+    const xEnd = Math.max(x1, x2);
+    for (let x = xStart; x <= xEnd; x++) {
+      const y = Math.round(m * x + c);
+      putThickPixel(x, y, thickness, r, g, b, a);
+    }
+  } else {
+    const m = (x2 - x1) / (y2 - y1);
+    const c = x1 - m * y1;
+    const yStart = Math.min(y1, y2);
+    const yEnd = Math.max(y1, y2);
+    for (let y = yStart; y <= yEnd; y++) {
+      const x = Math.round(m * y + c);
+      putThickPixel(x, y, thickness, r, g, b, a);
+    }
+  }
+}
+
+function drawRect(x1, y1, x2, y2, r, g, b, a = 255, thickness = 1) {
+  drawLine(x1, y1, x2, y1, r, g, b, a, thickness); // Top edge
+  drawLine(x2, y1, x2, y2, r, g, b, a, thickness); // Right edge
+  drawLine(x2, y2, x1, y2, r, g, b, a, thickness); // Bottom edge
+  drawLine(x1, y2, x1, y1, r, g, b, a, thickness); // Left edge
+}
+
+function drawRectFilled(x1, y1, x2, y2, r, g, b, a = 255) {
+  const xStart = Math.min(x1, x2), xEnd = Math.max(x1, x2);
+  const yStart = Math.min(y1, y2), yEnd = Math.max(y1, y2);
+  for (let y = yStart; y <= yEnd; y++) {
+    for (let x = xStart; x <= xEnd; x++) {
+      putPixel(x, y, r, g, b, a);
+    }
+  }
+}
+
+function drawRectGradient(x1, y1, x2, y2, r1, g1, b1, r2, g2, b2) {
+  for (let y = y1; y <= y2; y++) {
+    const t = (y - y1) / (y2 - y1);
+    const r = Math.round(r1 * (1 - t) + r2 * t);
+    const g = Math.round(g1 * (1 - t) + g2 * t);
+    const b = Math.round(b1 * (1 - t) + b2 * t);
+    for (let x = x1; x <= x2; x++) {
+      putPixel(x, y, r, g, b);
+    }
+  }
+}
+
+// Filled ellipse
+function drawEllipseFilled(cx, cy, rx, ry, r, g, b, a = 255) {
+  for (let y = -ry; y <= ry; y++) {
+    for (let x = -rx; x <= rx; x++) {
+      if (rx === 0 || ry === 0) continue;
+      if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) {
+        putPixel(cx + x, cy + y, r, g, b, a);
+      }
+    }
+  }
+}
+
+// Outlined ellipse (ring) with thickness, built from two corner points (bounding box)
+function drawEllipse(x1, y1, x2, y2, r, g, b, a = 255, thickness = 1) {
+  const cx = Math.round((x1 + x2) / 2);
+  const cy = Math.round((y1 + y2) / 2);
+  const rx = Math.abs(x2 - x1) / 2;
+  const ry = Math.abs(y2 - y1) / 2;
+  if (rx === 0 || ry === 0) return;
+
+  const steps = Math.max(360, Math.round(2 * Math.PI * Math.max(rx, ry)));
+  for (let i = 0; i < steps; i++) {
+    const theta = (i / steps) * 2 * Math.PI;
+    const x = Math.round(cx + rx * Math.cos(theta));
+    const y = Math.round(cy + ry * Math.sin(theta));
+    putThickPixel(x, y, thickness, r, g, b, a);
+  }
+}
+
+function drawSprite(sprite, x, y, r, g, b, a = 255) {
+  for (let j = 0; j < sprite.length; j++) {
+    for (let i = 0; i < sprite[j].length; i++) {
+      if (sprite[j][i] === 1) {
+        putPixel(x + i, y + j, r, g, b, a);
+      }
+    }
+  }
+}
+
+function drawSpriteRotateScale(sprite, x, y, degree, scaleX, scaleY, r, g, b, a = 255) {
+  for (let j = 0; j < sprite.length; j++) {
+    for (let i = 0; i < sprite[j].length; i++) {
+      if (sprite[j][i] === 1) {
+        const cX = i - (sprite[j].length / 2);
+        const cY = j - (sprite.length / 2);
+        const rad = degree * Math.PI / 180;
+        const x_rotated = Math.round(cX * Math.cos(rad) - cY * Math.sin(rad));
+        const y_rotated = Math.round(cX * Math.sin(rad) + cY * Math.cos(rad));
+        const x_rotated_scaled = Math.round(x_rotated * scaleX);
+        const y_rotated_scaled = Math.round(y_rotated * scaleY);
+        drawEllipseFilled(x + x_rotated_scaled, y + y_rotated_scaled, Math.round(scaleX), Math.round(scaleY), r, g, b, a);
+      }
+    }
+  }
+}
+
+function drawSprite24Bit(sprite, x, y) {
+  for (let j = 0; j < sprite.length; j++) {
+    for (let i = 0; i < sprite[j].length; i++) {
+      const color = sprite[j][i];
+      if (color !== null) {
+        const r = (color >> 16) & 255;
+        const g = (color >> 8) & 255;
+        const b = color & 255;
+        putPixel(x + i, y + j, r, g, b);
+      }
+    }
+  }
+}
+
+function toScaledMousePos(posX, posY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: Math.floor((posX - rect.left) * scaleX),
+    y: Math.floor((posY - rect.top) * scaleY)
+  };
+}
+
+function hexToRgb(hex) {
+  const bigint = parseInt(hex.replace('#', ''), 16);
+  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+}
+
+// ---- UI state ----
+let currentTool = 'pencil';
+let currentColor = hexToRgb('#000000');
+let currentThickness = 2;
+
+let isDragging = false;
+let startX = 0, startY = 0;
+let previousX = 0, previousY = 0;
+
+// ---- Keyboard shortcuts (replaces clickable tool buttons) ----
+const keyToTool = {
+  '1': 'pencil',
+  '2': 'line',
+  '3': 'rect',
+  '4': 'ellipse',
+  '5': 'eraser'
+};
+
+function setActiveTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('.tool-indicator').forEach(el => {
+    el.classList.toggle('active', el.dataset.tool === tool);
+  });
+}
+
+canvas.addEventListener('keydown', (event) => {
+  if (keyToTool[event.key]) {
+    setActiveTool(keyToTool[event.key]);
+    return;
+  }
+  if (event.key === 'ArrowUp') {
+    currentThickness = Math.min(30, currentThickness + 1);
+    document.getElementById('thickness').value = currentThickness;
+    document.getElementById('thicknessValue').textContent = currentThickness;
+    event.preventDefault();
+  } else if (event.key === 'ArrowDown') {
+    currentThickness = Math.max(1, currentThickness - 1);
+    document.getElementById('thickness').value = currentThickness;
+    document.getElementById('thicknessValue').textContent = currentThickness;
+    event.preventDefault();
+  }
+});
+
+// Click the canvas to give it keyboard focus so the shortcuts above start working
+canvas.addEventListener('mousedown', () => canvas.focus());
+
+document.getElementById('colorPicker').addEventListener('input', (e) => {
+  currentColor = hexToRgb(e.target.value);
+});
+
+document.getElementById('thickness').addEventListener('input', (e) => {
+  currentThickness = parseInt(e.target.value, 10);
+  document.getElementById('thicknessValue').textContent = currentThickness;
+});
+
+// Restore pixels to last committed drawing (used to redraw shape previews without smearing)
+function restoreBaseline() {
+  pixels.set(baseline);
+}
+
+function commitToBaseline() {
+  baseline = pixels.slice();
+}
+
+canvas.addEventListener('mousedown', (event) => {
+  const { x, y } = toScaledMousePos(event.clientX, event.clientY);
+  isDragging = true;
+  startX = x; startY = y;
+  previousX = x; previousY = y;
+
+  if (currentTool === 'pencil') {
+    putThickPixel(x, y, currentThickness, currentColor.r, currentColor.g, currentColor.b);
+    ctx.putImageData(imageData, 0, 0);
+  } else if (currentTool === 'eraser') {
+    putThickPixel(x, y, currentThickness, 255, 255, 255);
+    ctx.putImageData(imageData, 0, 0);
+  }
+});
+
+canvas.addEventListener('mousemove', (event) => {
+  if (!isDragging) return;
+  const { x, y } = toScaledMousePos(event.clientX, event.clientY);
+
+  if (currentTool === 'pencil') {
+    drawLine(previousX, previousY, x, y, currentColor.r, currentColor.g, currentColor.b, 255, currentThickness);
+    ctx.putImageData(imageData, 0, 0);
+    previousX = x; previousY = y;
+  } else if (currentTool === 'eraser') {
+    drawLine(previousX, previousY, x, y, 255, 255, 255, 255, currentThickness);
+    ctx.putImageData(imageData, 0, 0);
+    previousX = x; previousY = y;
+  } else if (currentTool === 'line') {
+    restoreBaseline();
+    drawLine(startX, startY, x, y, currentColor.r, currentColor.g, currentColor.b, 255, currentThickness);
+    ctx.putImageData(imageData, 0, 0);
+  } else if (currentTool === 'rect') {
+    restoreBaseline();
+    drawRect(startX, startY, x, y, currentColor.r, currentColor.g, currentColor.b, 255, currentThickness);
+    ctx.putImageData(imageData, 0, 0);
+  } else if (currentTool === 'ellipse') {
+    restoreBaseline();
+    drawEllipse(startX, startY, x, y, currentColor.r, currentColor.g, currentColor.b, 255, currentThickness);
+    ctx.putImageData(imageData, 0, 0);
+  }
+});
+
+canvas.addEventListener('mouseup', (event) => {
+  if (!isDragging) return;
+  isDragging = false;
+  commitToBaseline();
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (isDragging) {
+    isDragging = false;
+    commitToBaseline();
+  }
+});
+
+ctx.putImageData(imageData, 0, 0);
+</script>
+</body>
+</html>

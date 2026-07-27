@@ -1,0 +1,143 @@
+<html>
+<head>
+<title>Sprite 24bit - Translate / Rotate / Scale</title>
+<style>
+  body { font-family: sans-serif; background:#222; color:#eee; text-align:center; }
+  #canvas { border:1px solid #fff; image-rendering: pixelated; cursor: crosshair; }
+  #info { margin-top:10px; font-size:14px; color:#aaa; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas" width="200" height="200"
+style="width:500px; height:500px;">
+</canvas>
+
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const imageData = ctx.createImageData(canvas.width, canvas.height);
+const pixels = imageData.data; 
+
+function putPixel(x, y, r, g, b, a = 255) {
+  if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return; 
+  const idx = (y * canvas.width + x) * 4; 
+  pixels[idx] = r;
+  pixels[idx + 1] = g;
+  pixels[idx + 2] = b;
+  pixels[idx + 3] = a;
+}
+
+function drawRectFilled(x1, y1, x2, y2, r, g, b, a = 255) {
+  for (let y = y1; y <= y2; y++) {
+    for (let x = x1; x <= x2; x++) {
+      putPixel(x, y, r, g, b, a);
+    }
+  }
+}
+
+
+function drawSprite24BitRotateScale(sprite, x, y, degree = 0, scaleX = 1, scaleY = 1) {
+  const rad = degree * Math.PI / 180;
+  const cosR = Math.cos(rad);
+  const sinR = Math.sin(rad);
+
+  const h = sprite.length;
+  const w = sprite[0].length;
+
+  
+  const blockSize = Math.max(1, Math.round(Math.max(scaleX, scaleY)));
+
+  for (let j = 0; j < h; j++) {
+    for (let i = 0; i < w; i++) {
+      const color = sprite[j][i];
+      if (color === null) continue; 
+
+      
+      const r = (color >> 16) & 255;
+      const g = (color >> 8) & 255;
+      const b = color & 255;
+
+      
+      const cX = i - w / 2;
+      const cY = j - h / 2;
+
+      // Rotate
+      const xRotated = cX * cosR - cY * sinR;
+      const yRotated = cX * sinR + cY * cosR;
+
+      // Scale
+      const xFinal = Math.round(xRotated * scaleX);
+      const yFinal = Math.round(yRotated * scaleY);
+
+   
+      const half = Math.floor(blockSize / 2);
+      for (let dy = 0; dy < blockSize; dy++) {
+        for (let dx = 0; dx < blockSize; dx++) {
+          putPixel(x + xFinal + dx - half, y + yFinal + dy - half, r, g, b);
+        }
+      }
+    }
+  }
+}
+
+function toScaledMousePos(posX, posY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: Math.floor((posX - rect.left) * scaleX),
+    y: Math.floor((posY - rect.top) * scaleY)
+  };
+}
+
+const smileSprite24Bit = [
+  [null,       null,       0xB45309, 0xD97706, 0xD97706, 0xB45309, null,       null      ],
+  [null,       0xD97706,   0xFDE047, 0xFEF08A, 0xFEF08A, 0xFDE047, 0xD97706, null      ],
+  [0xB45309,   0xFDE047,   0x111827, 0xFDE047, 0xFDE047, 0x111827, 0xFDE047, 0xB45309  ],
+  [0xD97706,   0xFEF08A,   0x111827, 0xFEF08A, 0xFEF08A, 0x111827, 0xFEF08A, 0xD97706  ],
+  [0xD97706,   0xFDE047,   0xFDE047, 0xFDE047, 0xFDE047, 0xFDE047, 0xFDE047, 0xD97706  ],
+  [0xB45309,   0xFDE047,   0x111827, 0xFDE047, 0xFDE047, 0x111827, 0xFDE047, 0xB45309  ],
+  [null,       0xD97706,   0xFDE047, 0x111827, 0x111827, 0xFDE047, 0xD97706, null      ],
+  [null,       null,       0xB45309, 0xD97706, 0xD97706, 0xB45309, null,       null      ],
+];
+
+let mouseX = 100, mouseY = 100; 
+let degree = 0;                 
+let scale = 6;                  
+
+canvas.addEventListener('mousemove', (event) => {
+  const { x, y } = toScaledMousePos(event.clientX, event.clientY);
+  mouseX = x;
+  mouseY = y;
+});
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'ArrowLeft') {
+    degree -= 5; // 
+  } else if (event.key === 'ArrowRight') {
+    degree += 5; // 
+  }
+
+  if (event.key === 'ArrowUp') {
+    scale = Math.min(scale + 0.5, 20); 
+    event.preventDefault();
+  } else if (event.key === 'ArrowDown') {
+    scale = Math.max(scale - 0.5, 1);  
+    event.preventDefault();
+  }
+});
+
+function animate() {
+  drawRectFilled(0, 0, canvas.width - 1, canvas.height - 1, 255, 255, 255); 
+
+  drawSprite24BitRotateScale(smileSprite24Bit, mouseX, mouseY, degree, scale, scale);
+
+  ctx.putImageData(imageData, 0, 0);
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
